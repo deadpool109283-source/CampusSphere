@@ -1,0 +1,249 @@
+.directory-page > .public-header nav {
+  display: flex;
+  gap: 28px;
+}
+
+.directory-page > .public-header nav a {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.directory-page > .public-header nav a:hover {
+  color: var(--crimson);
+}
+
+.directory-heading {
+  margin: 0 auto;
+  max-width: 1320px;
+  padding: clamp(55px, 8vw, 110px) clamp(25px, 8vw, 110px) 48px;
+}
+
+.directory-heading h1 {
+  font-size: clamp(55px, 8vw, 100px);
+}
+
+.directory-heading > p:last-child {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 16px;
+  margin: 23px 0 0;
+  max-width: 360px;
+}
+
+.directory-list,
+.club-detail-public {
+  margin: 0 auto 70px;
+  max-width: 1100px;
+  padding: 0 clamp(24px, 7vw, 90px);
+}
+
+.directory-row {
+  align-items: center;
+  border-top: 1px solid var(--rule);
+  color: var(--ink);
+  display: grid;
+  gap: 22px;
+  grid-template-columns: 45px minmax(0, 1fr) 180px 25px;
+  padding: 19px 4px;
+  text-decoration: none;
+  transition: background 170ms ease, padding 170ms ease;
+}
+
+.directory-row:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+a.directory-row:hover {
+  background: rgba(165,28,48,.04);
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.directory-index {
+  color: var(--crimson);
+  font-family: var(--serif);
+  font-size: 15px;
+}
+
+.directory-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.directory-row-main strong {
+  font-family: var(--serif);
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 500;
+  letter-spacing: -.04em;
+}
+
+.directory-row-main small,
+.directory-row-detail {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.directory-row-detail {
+  line-height: 1.7;
+}
+
+.directory-arrow {
+  color: var(--crimson);
+  font-size: 19px;
+  text-decoration: none;
+  transition: transform 170ms ease;
+}
+
+a.directory-row:hover .directory-arrow {
+  transform: translate(2px, -2px);
+}
+
+.event-directory-row {
+  grid-template-columns: 45px minmax(0, 1fr) 180px 25px;
+}
+
+.directory-state {
+  border-left: 2px solid var(--crimson);
+  margin: 0 auto 80px;
+  max-width: 900px;
+  padding: 10px 20px;
+}
+
+.directory-state strong {
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 500;
+}
+
+.directory-state p {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.directory-state a {
+  color: var(--crimson);
+  font-size: 10px;
+}
+
+.directory-loading {
+  min-height: 30vh;
+}
+
+.club-detail-public {
+  max-width: 1100px;
+}
+
+.club-detail-banner {
+  background: #2a2220;
+  color: #fffaf3;
+  min-height: 380px;
+  padding: clamp(28px, 6vw, 65px);
+}
+
+.club-detail-banner > span {
+  color: #e3a1a8;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.club-detail-banner h2 {
+  font-family: var(--serif);
+  font-size: clamp(48px, 8vw, 86px);
+  font-weight: 500;
+  letter-spacing: -.08em;
+  line-height: .92;
+  margin: 40px 0 12px;
+}
+
+.club-detail-banner p {
+  color: #d0c4bc;
+  font-size: 11px;
+}
+
+.club-detail-banner .button-crimson {
+  margin-top: 19px;
+}
+
+.club-detail-copy {
+  display: grid;
+  gap: 35px;
+  grid-template-columns: 1.5fr 1fr;
+  padding: 30px 0;
+}
+
+.club-detail-copy > div {
+  border-top: 1px solid var(--rule);
+  padding-top: 14px;
+}
+
+.club-detail-copy .eyebrow {
+  margin-bottom: 10px;
+}
+
+.club-detail-copy > div > p:last-child {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .directory-page > .public-header nav {
+    gap: 15px;
+  }
+
+  .directory-heading {
+    padding: 57px 23px 37px;
+  }
+
+  .directory-heading h1 {
+    font-size: 58px;
+  }
+
+  .directory-list {
+    padding: 0 20px;
+  }
+
+  .directory-row {
+    gap: 8px;
+    grid-template-columns: 24px minmax(0, 1fr) 80px 18px;
+    padding: 15px 0;
+  }
+
+  .directory-row-main strong {
+    font-size: 18px;
+  }
+
+  .directory-row-detail {
+    font-size: 8px;
+  }
+
+  .directory-state {
+    margin: 0 22px 65px;
+  }
+
+  .club-detail-public {
+    padding: 0 16px;
+  }
+
+  .club-detail-banner {
+    margin: 0 -16px;
+    min-height: 350px;
+  }
+
+  .club-detail-copy {
+    gap: 20px;
+    grid-template-columns: 1fr;
+  }
+
+  .directory-footer {
+    padding: 15px 20px;
+  }
+}
