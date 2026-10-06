@@ -1,12 +1,21 @@
 import { useState } from 'react';
 
-export default function EventApplicationForm({ onSubmit, onClose, initialRegNo = '' }) {
+export default function EventApplicationForm({
+  onSubmit,
+  onClose,
+  initialName = '',
+  initialRegNo = '',
+  initialBranch = '',
+  initialSemester = '1',
+  previewOnly = false,
+}) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
+    studentName: initialName,
     regNo: initialRegNo,
-    branch: '',
-    semester: '1',
+    branch: initialBranch,
+    semester: initialSemester,
   });
 
   async function handleSubmit(event) {
@@ -28,6 +37,17 @@ export default function EventApplicationForm({ onSubmit, onClose, initialRegNo =
 
   return (
     <form className="registration-form" onSubmit={handleSubmit}>
+      <div className="field-group">
+        <label htmlFor="registration-name">Full name</label>
+        <input
+          autoComplete="name"
+          id="registration-name"
+          name="studentName"
+          onChange={updateField}
+          required
+          value={formData.studentName}
+        />
+      </div>
       <div className="field-group">
         <label htmlFor="registration-number">University registration number</label>
         <input
@@ -60,7 +80,7 @@ export default function EventApplicationForm({ onSubmit, onClose, initialRegNo =
           </select>
         </div>
       </div>
-      <p className="form-note">The event service validates capacity and prevents duplicate registrations.</p>
+      <p className="form-note">{previewOnly ? 'Preview only: your application is saved in this browser session.' : 'The event service validates capacity and prevents duplicate registrations.'}</p>
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="form-actions">
         <button className="quiet-button" type="button" onClick={onClose}>Cancel</button>

@@ -1,8 +1,9 @@
 :root {
   color: #211e1c;
   background: #f7f5f0;
-  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  font-family: "Manrope Variable", Manrope, sans-serif;
   font-synthesis: none;
+  font-optical-sizing: auto;
   text-rendering: optimizeLegibility;
   --paper: #f7f5f0;
   --surface: #fffefa;
@@ -11,8 +12,10 @@
   --rule: #ded9d0;
   --crimson: #a51c30;
   --crimson-dark: #711526;
-  --serif: Georgia, "Times New Roman", serif;
-  --sans: Inter, "Segoe UI", Arial, sans-serif;
+  --font-family: "Manrope Variable", Manrope, sans-serif;
+  --serif: var(--font-family);
+  --sans: var(--font-family);
+  --font-display: var(--font-family);
   --ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 

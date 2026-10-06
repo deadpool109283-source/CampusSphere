@@ -1,5 +1,11 @@
 {
-  "devDependencies": {
-    "@tailwindcss/vite": "^4.3.3"
+  "name": "campussphere-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "lint": "npm --prefix client run lint",
+    "preview": "npm --prefix client run preview"
   }
 }

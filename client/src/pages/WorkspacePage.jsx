@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSession } from '../auth/useSession';
 import RegistrationDialog from '../components/RegistrationDialog';
+import RoleWorkflow from '../components/RoleWorkflow';
 import { apiFetch } from '../lib/api';
+import { hasPreviewApplication, readPublishedPreviewEvents, readWorkflowPreview } from '../lib/workflowPreview';
 
 const roleCopy = {
   STUDENT: {
@@ -18,17 +20,29 @@ const roleCopy = {
     titleAccent: 'happen here.',
     intro: 'A clear view of the club directory and event calendar for your campus.',
   },
+  CLUB_EXECUTIVE: {
+    eyebrow: 'Event-day operations',
+    titleTop: 'Be there when',
+    titleAccent: 'the moments happen.',
+    intro: 'Support your club’s event operations and take attendance during the scheduled event window.',
+  },
+  CLUB_PRESIDENT: {
+    eyebrow: 'President · club operations',
+    titleTop: 'Lead your club',
+    titleAccent: 'from idea to impact.',
+    intro: 'Coordinate your team, request event approvals, and keep your club’s work moving.',
+  },
   FACULTY: {
-    eyebrow: 'Faculty workspace',
-    titleTop: 'A closer view of',
-    titleAccent: 'campus life.',
-    intro: 'Review current club and event information from across the campus.',
+    eyebrow: 'Club mentor',
+    titleTop: 'Guide good ideas',
+    titleAccent: 'into action.',
+    intro: 'Review event requests and final attendance from your assigned clubs.',
   },
   ADMIN: {
-    eyebrow: 'Campus overview',
-    titleTop: 'The campus,',
-    titleAccent: 'in motion.',
-    intro: 'A practical overview of the activity currently exposed by the CampusSphere service.',
+    eyebrow: 'Student Affairs',
+    titleTop: 'Support the',
+    titleAccent: 'whole campus.',
+    intro: 'Manage clubs and review final event approvals for the campus community.',
   },
 };
 
@@ -37,34 +51,53 @@ export default function WorkspacePage() {
   const { clubId } = useParams();
   const { session } = useSession();
   const role = session.profile.role;
+  const assignedClubId = role === 'FACULTY' ? session.profile.clubIds?.[0] : undefined;
   const isClubDetail = Boolean(clubId);
   const view = isClubDetail ? 'club' : location.pathname.endsWith('/clubs') ? 'clubs' : location.pathname.endsWith('/events') ? 'events' : 'home';
   const [data, setData] = useState(null);
   const [requestState, setRequestState] = useState({ key: '', error: '' });
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [registeredEventIds, setRegisteredEventIds] = useState([]);
-  const requestKey = `${role}:${view}:${clubId || ''}`;
+  const requestKey = `${role}:${view}:${clubId || ''}:${assignedClubId || ''}`;
 
   useEffect(() => {
     const controller = new AbortController();
 
-    const request = view === 'club'
-      ? apiFetch(`/club/${clubId}`, { signal: controller.signal })
-      : view === 'clubs'
-        ? apiFetch('/clubs', { signal: controller.signal })
-        : view === 'events'
-          ? apiFetch('/events', { signal: controller.signal })
-          : role === 'STUDENT'
-            ? apiFetch('/student/dashboard', { signal: controller.signal })
-            : role === 'ADMIN'
-                ? Promise.all([
-                  apiFetch('/admin/dashboard', { signal: controller.signal }),
-                  apiFetch('/clubs', { signal: controller.signal }),
-                ]).then(([dashboard, clubResult]) => ({ ...dashboard, clubs: clubResult.clubs }))
-              : Promise.all([
-                apiFetch('/clubs', { signal: controller.signal }),
-                apiFetch('/events', { signal: controller.signal }),
-              ]).then(([clubResult, eventResult]) => ({ clubs: clubResult.clubs, events: eventResult.events }));
+    let request;
+    if (role === 'FACULTY') {
+      const canRequestClub = view !== 'club' || String(assignedClubId) === String(clubId);
+      if (!assignedClubId || !canRequestClub) {
+        request = Promise.resolve({ club: null, clubs: [], events: [] });
+      } else {
+        const requestClubId = view === 'club' ? clubId : assignedClubId;
+        request = apiFetch(`/club/${requestClubId}`, { signal: controller.signal }).then((clubData) => {
+          if (view === 'club') return clubData;
+          const assignedClub = clubData.club ? [clubData.club] : [];
+          const assignedEvents = clubData.upcomingEvents || [];
+          if (view === 'clubs') return { clubs: assignedClub };
+          if (view === 'events') return { events: assignedEvents };
+          return { clubs: assignedClub, events: assignedEvents };
+        });
+      }
+    } else if (view === 'club') {
+      request = apiFetch(`/club/${clubId}`, { signal: controller.signal });
+    } else if (view === 'clubs') {
+      request = apiFetch('/clubs', { signal: controller.signal });
+    } else if (view === 'events') {
+      request = apiFetch('/events', { signal: controller.signal });
+    } else if (role === 'STUDENT') {
+      request = apiFetch('/student/dashboard', { signal: controller.signal });
+    } else if (role === 'ADMIN') {
+      request = Promise.all([
+        apiFetch('/admin/dashboard', { signal: controller.signal }),
+        apiFetch('/clubs', { signal: controller.signal }),
+      ]).then(([dashboard, clubResult]) => ({ ...dashboard, clubs: clubResult.clubs }));
+    } else {
+      request = Promise.all([
+        apiFetch('/clubs', { signal: controller.signal }),
+        apiFetch('/events', { signal: controller.signal }),
+      ]).then(([clubResult, eventResult]) => ({ clubs: clubResult.clubs, events: eventResult.events }));
+    }
 
     request
       .then((responseData) => {
@@ -79,12 +112,34 @@ export default function WorkspacePage() {
       });
 
     return () => controller.abort();
-  }, [view, clubId, role, requestKey]);
+  }, [view, clubId, role, requestKey, assignedClubId]);
 
   const isLoading = requestState.key !== requestKey;
   const error = requestState.key === requestKey ? requestState.error : '';
-  const events = data?.events || [];
-  const clubs = data?.clubs || [];
+  const previewEvents = import.meta.env.DEV && session.preview
+    ? readPublishedPreviewEvents().map((event) => ({
+      ...event,
+      id: event.id,
+      club: event.clubName,
+      date: `${event.date}T${event.startTime}:00`,
+      registeredCount: 0,
+      capacity: 100,
+      open: true,
+      description: 'Published by the club President after event approval.',
+      previewOnly: true,
+    }))
+    : [];
+  const events = [...(data?.events || []), ...previewEvents];
+  const previewClubs = import.meta.env.DEV && session.preview
+    ? (readWorkflowPreview()?.clubs || [])
+    : [];
+  const allClubs = [...(data?.clubs || []), ...previewClubs];
+  const clubs = role === 'FACULTY'
+    ? allClubs.filter((club) => session.profile.clubIds?.some((id) => String(id) === String(club.id)))
+    : allClubs;
+  const visibleEvents = role === 'FACULTY'
+    ? events.filter((event) => session.profile.clubNames?.includes(event.club))
+    : events;
   const onRegistrationSuccess = useCallback((eventId) => {
     setRegisteredEventIds((current) => [...current, eventId]);
     setData((current) => current && ({
@@ -99,14 +154,22 @@ export default function WorkspacePage() {
 
   if (isLoading) return <WorkspaceLoading />;
   if (error) return <WorkspaceError error={error} />;
-  if (view === 'club') return <ClubProfile data={data} />;
+  if (view === 'club') {
+    const mentorCanViewClub = role !== 'FACULTY'
+      || session.profile.clubIds?.some((id) => String(id) === String(data?.club?.id));
+    if (!mentorCanViewClub) {
+      return <Navigate to="/app/clubs" replace />;
+    }
+    return <ClubProfile data={data} />;
+  }
   if (view === 'clubs') return <ClubDirectory clubs={clubs} />;
   if (view === 'events') {
     return (
       <>
         <EventDirectory
-          events={events}
+          events={visibleEvents}
           role={role}
+          profile={session.profile}
           registeredEventIds={registeredEventIds}
           onRegister={setSelectedEvent}
         />
@@ -138,14 +201,18 @@ export default function WorkspacePage() {
               </div>
               <div className="today-event-action">
                 <span>{events[0].registeredCount}/{events[0].capacity} places</span>
-                <button
-                  className="primary-button"
-                  type="button"
-                  disabled={!events[0].open || registeredEventIds.includes(events[0].id)}
-                  onClick={() => setSelectedEvent(events[0])}
-                >
-                  {registeredEventIds.includes(events[0].id) ? 'Registered' : events[0].open ? 'Register' : 'Full'}
-                </button>
+                {['STUDENT', 'CLUB_EXECUTIVE', 'CLUB_PRESIDENT', 'CLUB_COMMITTEE'].includes(role) && (
+                  events[0].club === session.profile.clubName
+                    ? <span className="own-club-event">Your club event</span>
+                    : <button
+                      className="primary-button"
+                      type="button"
+                      disabled={!events[0].open || registeredEventIds.includes(events[0].id) || (events[0].previewOnly && hasPreviewApplication(events[0].id, session.profile.rollNumber))}
+                      onClick={() => setSelectedEvent(events[0])}
+                    >
+                      {registeredEventIds.includes(events[0].id) || (events[0].previewOnly && hasPreviewApplication(events[0].id, session.profile.rollNumber)) ? 'Applied' : events[0].open ? 'Apply' : 'Full'}
+                    </button>
+                )}
               </div>
             </div>
           ) : <EmptyState title="Nothing scheduled just yet." detail="When campus events are published, they’ll show up here." />}
@@ -184,7 +251,7 @@ export default function WorkspacePage() {
     return <AdminOverview data={data} clubs={clubs} userName={session.profile.fullName} />;
   }
 
-  return <OperationsOverview role={role} userName={session.profile.fullName} clubs={clubs} events={events} />;
+  return <OperationsOverview role={role} userName={session.profile.fullName} clubs={clubs} events={visibleEvents} />;
 }
 
 function WorkspaceHero({ copy, userName }) {
@@ -198,21 +265,14 @@ function WorkspaceHero({ copy, userName }) {
 }
 
 function OperationsOverview({ role, userName, clubs, events }) {
-  const faculty = role === 'FACULTY';
   const copy = roleCopy[role];
   return (
     <div className="workspace-stack">
       <WorkspaceHero copy={copy} userName={userName} />
-      <section className="notice-panel" role="note">
-        <span className="notice-mark">i</span>
-        <div>
-          <strong>{faculty ? 'Approval decisions are not connected yet.' : 'Committee workflows are not connected yet.'}</strong>
-          <p>The current API exposes club and event listings only. It does not provide application queues, approval status, or management actions. This workspace won’t show fabricated tasks.</p>
-        </div>
-      </section>
+      <RoleWorkflow clubs={clubs} />
       <section className="workspace-section">
         <div className="section-heading">
-          <div><p className="eyebrow">{faculty ? 'Campus activity' : 'Club directory'}</p><h2>{faculty ? 'Current events' : 'Campus communities'}</h2></div>
+          <div><p className="eyebrow">Campus activity</p><h2>Current events</h2></div>
           <Link className="text-link" to="/app/events">Event calendar <span>↗</span></Link>
         </div>
         <EventRows events={events.slice(0, 4)} />
@@ -248,6 +308,7 @@ function AdminOverview({ data, clubs, userName }) {
   return (
     <div className="workspace-stack">
       <WorkspaceHero copy={roleCopy.ADMIN} userName={userName} />
+      <RoleWorkflow clubs={data?.clubs || []} />
       <div className="admin-facts">
         <div><strong>{clubs.length}</strong><span>Clubs in current listing</span></div>
         <div><strong>{eventCount}</strong><span>Events in overview response</span></div>
@@ -322,18 +383,49 @@ function ClubProfile({ data }) {
   );
 }
 
-function EventDirectory({ events, role, registeredEventIds, onRegister }) {
+function EventDirectory({ events, role, profile, registeredEventIds, onRegister }) {
+  const mayApply = ['STUDENT', 'CLUB_EXECUTIVE', 'CLUB_PRESIDENT', 'CLUB_COMMITTEE'].includes(role);
+  const [selectedDate, setSelectedDate] = useState('');
+  const visibleEvents = selectedDate
+    ? events.filter((event) => String(event.date).slice(0, 10) === selectedDate)
+    : events;
   return (
     <div className="workspace-stack">
-      <PageHeading eyebrow="What’s happening" title={<>Find your next<br /><em>campus story.</em></>} detail="Workshops, talks, and gatherings happening across the campus." />
-      {events.length ? events.map((event, index) => (
+      <PageHeading eyebrow="What’s happening" title={<>Find your next<br /><em>campus story.</em></>} detail="Browse approved workshops, talks, and gatherings. Filter to a date to see that day’s event schedule." />
+      <div className="event-day-filter">
+        <label htmlFor="event-day">Events on</label>
+        <input id="event-day" type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
+        {selectedDate && <button className="text-link button-link" type="button" onClick={() => setSelectedDate('')}>Show all dates</button>}
+        <span>{visibleEvents.length} {visibleEvents.length === 1 ? 'event' : 'events'}</span>
+      </div>
+      {visibleEvents.length ? visibleEvents.map((event, index) => (
         <article className="event-listing" key={event.id}>
           <div className="event-listing-index">{String(index + 1).padStart(2, '0')}</div>
           <div className="event-listing-date"><strong>{eventDay(event.date)}</strong><span>{eventMonth(event.date)}</span></div>
-          <div className="event-listing-main"><p className="eyebrow">{event.club}</p><h2>{event.title}</h2><p>{event.venue} <span>·</span> {formatEventDate(event.date)}</p>{event.description && <p className="event-description">{event.description}</p>}</div>
-          <div className="event-listing-action"><span>{event.registeredCount}/{event.capacity} places</span>{role === 'STUDENT' && <button className="primary-button" type="button" disabled={!event.open || registeredEventIds.includes(event.id)} onClick={() => onRegister(event)}>{registeredEventIds.includes(event.id) ? 'Registered' : event.open ? 'Register' : 'Full'}</button>}</div>
+          <div className="event-listing-main">
+            <p className="eyebrow">{event.club}</p><h2>{event.title}</h2>
+            <p>{event.venue} <span>·</span> {formatEventDate(event.date)}</p>
+            <details className="event-details">
+              <summary>Event details</summary>
+              <p>{event.description || 'More details will be shared by the club.'}</p>
+              <p>Organized by {event.club}. Applications are subject to event capacity and the club’s requirements.</p>
+              {event.posterDataUrl && <img className="workflow-poster-preview" src={event.posterDataUrl} alt={`${event.title} event poster`} />}
+              {event.posterName && !event.posterDataUrl && <p>Event poster: {event.posterName}</p>}
+              {event.applicationDataUrl
+                ? <p><a href={event.applicationDataUrl} target="_blank" rel="noreferrer">View application form · {event.applicationName}</a></p>
+                : event.applicationName && <p>Application form: {event.applicationName}</p>}
+            </details>
+          </div>
+          <div className="event-listing-action">
+            <span>{event.registeredCount}/{event.capacity} places</span>
+            {mayApply && (
+              event.club === profile.clubName
+                ? <span className="own-club-event" title="Members cannot apply to their own club events.">Your club event</span>
+                : <button className="primary-button" type="button" disabled={!event.open || registeredEventIds.includes(event.id) || hasPreviewApplication(event.id, profile.rollNumber)} onClick={() => onRegister(event)}>{registeredEventIds.includes(event.id) || hasPreviewApplication(event.id, profile.rollNumber) ? 'Applied' : event.open ? 'Apply' : 'Full'}</button>
+            )}
+          </div>
         </article>
-      )) : <EmptyState title="No upcoming events are listed." detail="New campus events will appear here when published." />}
+      )) : <EmptyState title={selectedDate ? 'No events on this date.' : 'No upcoming events are listed.'} detail={selectedDate ? 'Choose another date or show all events.' : 'New campus events will appear here when published.'} />}
       <PreviewDataNote />
     </div>
   );
@@ -383,7 +475,7 @@ function WorkspaceError({ error }) {
 }
 
 function PreviewDataNote() {
-  return <p className="data-source-note">Development preview · Data is provided by the current demo API, not yet persisted to PostgreSQL.</p>;
+  return <p className="data-source-note">Development role preview · Role workflows are not connected to authenticated API actions yet.</p>;
 }
 
 function eventDay(value) {

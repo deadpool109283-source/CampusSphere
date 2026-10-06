@@ -6,8 +6,8 @@
   --landing-red-dark: #681423;
   background: var(--landing-paper);
   color: var(--landing-ink);
-  font-family: Georgia, "Times New Roman", serif;
-  overflow: clip;
+  font-family: var(--sans);
+  overflow-x: clip;
 }
 
 .landing-nav,
@@ -29,7 +29,7 @@
   align-items: center;
   color: var(--landing-ink);
   display: inline-flex;
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 18px;
   font-weight: 750;
   gap: 10px;
@@ -47,7 +47,7 @@
   border-radius: 50%;
   color: #fffaf3;
   display: inline-flex;
-  font-family: Georgia, serif;
+  font-family: var(--sans);
   font-size: 17px;
   height: 33px;
   justify-content: center;
@@ -62,7 +62,7 @@
 .landing-links a,
 .nav-login {
   color: var(--landing-ink);
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 12px;
   font-weight: 650;
   letter-spacing: 0.03em;
@@ -109,7 +109,7 @@
   align-items: center;
   color: var(--landing-red);
   display: flex;
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 10px;
   font-weight: 700;
   gap: 10px;
@@ -172,7 +172,7 @@
   background: var(--landing-red);
   color: #fffaf3;
   display: inline-flex;
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 11px;
   font-weight: 700;
   gap: 26px;
@@ -202,7 +202,7 @@
 
 .button-text {
   color: var(--landing-ink);
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 11px;
   font-weight: 700;
   text-decoration: none;
@@ -243,7 +243,7 @@
   bottom: 18px;
   color: white;
   display: flex;
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 9px;
   justify-content: space-between;
   left: 22px;
@@ -256,7 +256,7 @@
 
 .hero-side-note {
   color: var(--landing-muted);
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 9px;
   letter-spacing: 0.15em;
   position: absolute;
@@ -270,7 +270,7 @@
   align-items: center;
   color: var(--landing-muted);
   display: flex;
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 9px;
   gap: 10px;
   left: 3vw;
@@ -324,13 +324,13 @@
 .numbers-grid span,
 .numbers-grid > p {
   color: var(--landing-muted);
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 11px;
 }
 
 .landing-data-note {
   color: var(--landing-muted);
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 8px;
   line-height: 1.5;
   margin: 22px 0 0;
@@ -380,7 +380,7 @@
 
 .gallery-hint {
   color: var(--landing-muted);
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 11px;
   line-height: 1.6;
   margin: 0 3vw 4px 20px;
@@ -434,7 +434,7 @@
 }
 
 .club-card-top {
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 9px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -447,7 +447,7 @@
 }
 
 .club-card-bottom p {
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 10px;
   letter-spacing: 0.08em;
   margin: 0 0 8px;
@@ -473,7 +473,7 @@
   border-radius: 50%;
   color: white;
   display: flex;
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 21px;
   height: 44px;
   justify-content: center;
@@ -492,7 +492,7 @@
   align-items: center;
   border-top: 1px solid #ded9d0;
   display: flex;
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   justify-content: space-between;
   margin-top: 22px;
   padding-top: 16px;
@@ -588,7 +588,7 @@
 }
 
 .event-date span {
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -605,7 +605,7 @@
 .event-poster-title > span,
 .event-poster-title > div {
   display: flex;
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 8px;
   justify-content: space-between;
   letter-spacing: 0.14em;
@@ -703,7 +703,7 @@
 .landing-footer p,
 .landing-footer > a:last-child {
   color: #b9b0a7;
-  font-family: Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 9px;
 }
 

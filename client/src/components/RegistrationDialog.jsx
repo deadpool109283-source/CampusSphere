@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import EventApplicationForm from './EventApplicationForm';
 import { apiFetch } from '../lib/api';
+import { savePreviewApplication } from '../lib/workflowPreview';
+import '../styles/registration.css';
 
 export default function RegistrationDialog({ event, profile, onClose, onSuccess }) {
   const dialogRef = useRef(null);
@@ -39,11 +41,27 @@ export default function RegistrationDialog({ event, profile, onClose, onSuccess 
 
   async function handleRegister(formData) {
     try {
+      if (event.previewOnly && import.meta.env.DEV) {
+        const saved = savePreviewApplication({
+          eventId: event.id,
+          eventTitle: event.title,
+          studentName: formData.studentName,
+          regNo: formData.regNo,
+          branch: formData.branch,
+          semester: formData.semester,
+          submittedAt: new Date().toISOString(),
+        });
+        if (!saved) throw new Error('You have already applied for this event.');
+        toast.success('Application saved in this browser preview.');
+        onSuccess(event.id);
+        onClose();
+        return;
+      }
       const result = await apiFetch('/events/register', {
         method: 'POST',
         body: JSON.stringify({
           eventId: event.id,
-          studentName: profile.fullName,
+          studentName: formData.studentName,
           regNo: formData.regNo,
           branch: formData.branch,
           semester: formData.semester,
@@ -71,7 +89,11 @@ export default function RegistrationDialog({ event, profile, onClose, onSuccess 
         <EventApplicationForm
           onSubmit={handleRegister}
           onClose={onClose}
+          initialName={profile.fullName || ''}
           initialRegNo={profile.rollNumber || ''}
+          initialBranch={profile.branch || ''}
+          initialSemester={profile.semester || '1'}
+          previewOnly={event.previewOnly}
         />
       </section>
     </div>

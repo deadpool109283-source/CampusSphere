@@ -118,8 +118,8 @@ export default function Home() {
           }
         }
 
-        requestAnimationFrame(() => ScrollTrigger.refresh());
-        return undefined;
+        const refreshFrame = requestAnimationFrame(() => ScrollTrigger.refresh());
+        return () => cancelAnimationFrame(refreshFrame);
       },
       pageRef,
     );
@@ -174,7 +174,7 @@ export default function Home() {
           <div><strong>{isLoading ? '—' : events.length}</strong><span>Events listed</span></div>
           <p>One place for everything happening beyond the classroom.</p>
         </div>
-        <p className="landing-data-note">Current listings come from the CampusSphere demo API; PostgreSQL persistence is not connected yet.</p>
+        <p className="landing-data-note">Current listings are provided by the CampusSphere API.</p>
         {error && <p className="landing-data-note" role="status">Campus listings are temporarily unavailable.</p>}
       </section>
 

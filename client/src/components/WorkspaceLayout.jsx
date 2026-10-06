@@ -13,6 +13,16 @@ const navigationByRole = {
     { label: 'Club directory', path: '/app/clubs', marker: '02' },
     { label: 'Event calendar', path: '/app/events', marker: '03' },
   ],
+  CLUB_EXECUTIVE: [
+    { label: 'Event-day desk', path: '/app', marker: '01' },
+    { label: 'Club directory', path: '/app/clubs', marker: '02' },
+    { label: 'Campus events', path: '/app/events', marker: '03' },
+  ],
+  CLUB_PRESIDENT: [
+    { label: 'President desk', path: '/app', marker: '01' },
+    { label: 'Club directory', path: '/app/clubs', marker: '02' },
+    { label: 'Campus events', path: '/app/events', marker: '03' },
+  ],
   FACULTY: [
     { label: 'Review desk', path: '/app', marker: '01' },
     { label: 'Club directory', path: '/app/clubs', marker: '02' },
@@ -28,8 +38,10 @@ const navigationByRole = {
 const roleLabels = {
   STUDENT: 'Student workspace',
   CLUB_COMMITTEE: 'Club committee',
-  FACULTY: 'Faculty workspace',
-  ADMIN: 'Campus administration',
+  CLUB_EXECUTIVE: 'Club executive',
+  CLUB_PRESIDENT: 'Club president',
+  FACULTY: 'Club mentor',
+  ADMIN: 'Student Affairs',
 };
 
 export default function WorkspaceLayout() {

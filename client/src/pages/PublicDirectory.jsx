@@ -12,7 +12,7 @@ function PublicFrame({ children }) {
         <Link className="quiet-button" to="/login">Sign in <span aria-hidden="true">↗</span></Link>
       </header>
       {children}
-      <footer className="directory-footer"><Link to="/">CampusSphere</Link><span>Demo API listings · PostgreSQL persistence is not connected.</span></footer>
+      <footer className="directory-footer"><Link to="/">CampusSphere</Link><span>Campus listings · served by the CampusSphere API.</span></footer>
     </main>
   );
 }
