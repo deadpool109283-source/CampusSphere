@@ -8,9 +8,13 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import PublicDirectory from './pages/PublicDirectory';
 import WorkspacePage from './pages/WorkspacePage';
+import './styles/home.css';
 import './styles/workspace.css';
 import './styles/login.css';
 import './styles/directory.css';
+import './styles/profile.css';
+import './styles/registration.css';
+import './styles/theme-overrides.css';
 
 export default function App() {
   return (
@@ -29,6 +33,17 @@ export default function App() {
               <Route path="clubs" element={<WorkspacePage />} />
               <Route path="clubs/:clubId" element={<WorkspacePage />} />
               <Route path="events" element={<WorkspacePage />} />
+              <Route path="membership" element={<WorkspacePage />} />
+              <Route path="members" element={<WorkspacePage />} />
+              <Route path="chats" element={<WorkspacePage />} />
+              <Route path="equipment" element={<WorkspacePage />} />
+              <Route path="funding" element={<WorkspacePage />} />
+              <Route path="reports" element={<WorkspacePage />} />
+              <Route path="event-reports" element={<WorkspacePage />} />
+              <Route path="announcements" element={<WorkspacePage />} />
+              <Route path="credential-requests" element={<WorkspacePage />} />
+              <Route path="account-desk" element={<WorkspacePage />} />
+              <Route path="profile" element={<WorkspacePage />} />
             </Route>
           </Route>
           <Route path="/student/*" element={<Navigate to="/app" replace />} />

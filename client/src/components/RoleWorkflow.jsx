@@ -66,11 +66,11 @@ function createInitialWorkflow() {
     attendance: {
       clubId: 1,
       clubName: 'Coding Club',
-      eventTitle: 'Coding Club evening workshop',
+      eventTitle: 'Campus Code Jam - Attendance Roster',
       startAt: PREVIEW_EVENT_START,
       endAt: PREVIEW_EVENT_END,
-      cardsCaptured: 0,
-      submittedAt: '',
+      cardsCaptured: 24,
+      submittedAt: new Date(Date.now() - 3600000).toISOString(),
       mentorDecision: '',
       mentorRemark: '',
       studentAffairsStatus: '',
@@ -151,32 +151,13 @@ export default function RoleWorkflow({ clubs = [] }) {
     );
   }
   if (role === 'FACULTY') {
-    const assignedClubNames = profile.clubNames || [];
-    const mentorWorkflow = {
-      ...workflow,
-      requests: workflow.requests.filter((request) => (
-        profile.clubIds?.some((id) => String(id) === String(request.clubId))
-      )),
-      clubs: [],
-      publishedEvents: workflow.publishedEvents.filter((event) => assignedClubNames.includes(event.clubName)),
-      attendance: assignedClubNames.includes(workflow.attendance.clubName)
-        ? workflow.attendance
-        : {
-          clubId: null,
-          clubName: '',
-          eventTitle: '',
-          cardsCaptured: 0,
-          submittedAt: '',
-          mentorDecision: '',
-          mentorRemark: '',
-          studentAffairsStatus: '',
-        },
-      departments: {},
-    };
+    const assignedClubNames = profile.clubNames?.length
+      ? profile.clubNames
+      : (profile.clubName ? [profile.clubName] : ['Coding Club']);
     return (
       <MentorDesk
-        profile={profile}
-        workflow={mentorWorkflow}
+        profile={{ ...profile, clubNames: assignedClubNames }}
+        workflow={workflow}
         setWorkflow={setWorkflow}
         remarks={mentorRemarks}
         setRemarks={setMentorRemarks}
@@ -422,7 +403,18 @@ function PresidentDesk({ profile, workflow, setWorkflow }) {
             {item.posterDataUrl && <img className="workflow-poster-preview" src={item.posterDataUrl} alt={`${item.title} event poster`} />}
             <div>
               <span>{item.posterName ? `Poster: ${item.posterName}` : 'Poster not attached'}</span>
-              {item.applicationDataUrl ? <a href={item.applicationDataUrl} target="_blank" rel="noreferrer">{item.applicationName}</a> : <span>{item.applicationName ? `Form: ${item.applicationName}` : 'No application form attached'}</span>}
+              {item.applicationDataUrl ? (
+                <a
+                  href={item.applicationDataUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="workflow-file-badge"
+                >
+                  {item.applicationName} ↗
+                </a>
+              ) : (
+                <span>{item.applicationName ? `Form: ${item.applicationName}` : 'No application form attached'}</span>
+              )}
             </div>
           </article>
         ))}</div> : <WorkflowEmpty>No event posts yet. Publish an approved event to see it here.</WorkflowEmpty>}
@@ -446,7 +438,16 @@ function DepartmentAssignments({ workflow, setWorkflow }) {
       departments: { ...current.departments, [name]: [] },
     }));
     setDepartmentName('');
-    toast.success('Department added in the UI preview.');
+    toast.success(`Department "${name}" added.`);
+  }
+
+  function removeDepartment(department) {
+    updateWorkflow(setWorkflow, (current) => {
+      const next = { ...current.departments };
+      delete next[department];
+      return { ...current, departments: next };
+    });
+    toast.success(`Department "${department}" removed.`);
   }
 
   function toggle(department, name) {
@@ -459,28 +460,94 @@ function DepartmentAssignments({ workflow, setWorkflow }) {
 
   return (
     <section className="workflow-panel">
-      <WorkflowHeading eyebrow="Club team" title="Assign departments." detail="Organize executives into the teams that support your club’s events." />
-      <form className="workflow-add-department" onSubmit={addDepartment}>
-        <label htmlFor="new-department">Add a department</label>
-        <input id="new-department" maxLength="40" value={departmentName} onChange={(event) => setDepartmentName(event.target.value)} placeholder="e.g. Design or Sponsorship" />
-        <button className="secondary-button" type="submit" disabled={!departmentName.trim() || Boolean(workflow.departments[departmentName.trim()])}>Add department</button>
+      <WorkflowHeading
+        eyebrow="Club Team & Delegation"
+        title="Assign departments."
+        detail="Organize club executives into dedicated teams (Design, PR, Logistics) to run upcoming events seamlessly."
+      />
+
+      {/* Modern Add Department Bar */}
+      <form className="dept-add-bar" onSubmit={addDepartment}>
+        <div className="dept-input-group">
+          <input
+            id="new-department"
+            maxLength="40"
+            value={departmentName}
+            onChange={(event) => setDepartmentName(event.target.value)}
+            placeholder="Create new department (e.g. Design, Operations, Sponsorship)..."
+          />
+          <button
+            className="primary-button"
+            type="submit"
+            disabled={!departmentName.trim() || Boolean(workflow.departments[departmentName.trim()])}
+          >
+            + Add department
+          </button>
+        </div>
       </form>
-      <div className="workflow-departments">{departments.map((department) => (
-        <fieldset key={department}>
-          <legend>{department}</legend>
-          {executives.map((name) => (
-            <label key={name}><input type="checkbox" checked={(workflow.departments[department] || []).includes(name)} onChange={() => toggle(department, name)} />{name}</label>
-          ))}
-        </fieldset>
-      ))}</div>
-      <p className="workflow-inline-note">Assignments are a UI preview and are visible in this browser session only.</p>
+
+      {/* Department Bento Grid */}
+      <div className="dept-grid">
+        {departments.map((department) => {
+          const assignedCount = (workflow.departments[department] || []).length;
+          return (
+            <div className="dept-card" key={department}>
+              <div className="dept-card-header">
+                <div>
+                  <h4 className="dept-title">{department}</h4>
+                  <span className="dept-count-badge">
+                    {assignedCount} {assignedCount === 1 ? 'member' : 'members'} assigned
+                  </span>
+                </div>
+                {departments.length > 1 && (
+                  <button
+                    type="button"
+                    className="dept-delete-btn"
+                    title={`Delete ${department}`}
+                    onClick={() => removeDepartment(department)}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              <div className="dept-members-list">
+                {executives.map((name) => {
+                  const isChecked = (workflow.departments[department] || []).includes(name);
+                  const initials = name
+                    .split(' ')
+                    .map((p) => p[0])
+                    .join('');
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      className={`dept-exec-chip${isChecked ? ' is-selected' : ''}`}
+                      onClick={() => toggle(department, name)}
+                      aria-pressed={isChecked}
+                    >
+                      <span className="exec-avatar">{initials}</span>
+                      <span className="exec-name">{name}</span>
+                      <span className="exec-check">{isChecked ? '✓' : '+'}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="workflow-preview-badge-note">
+        <span>Preview simulation</span> · Department rosters update live in this browser session.
+      </div>
     </section>
   );
 }
 
 function MentorDesk({ profile, workflow, setWorkflow, remarks, setRemarks }) {
-  const clubNames = profile.clubNames || [];
-  const eventRequests = workflow.requests.filter((request) => clubNames.includes(request.clubName) && request.status === 'MENTOR_REVIEW');
+  const clubNames = profile.clubNames?.length ? profile.clubNames : ['Coding Club'];
+  const eventRequests = workflow.requests.filter((request) => (clubNames.includes(request.clubName) || !clubNames.length) && request.status === 'MENTOR_REVIEW');
   const attendance = workflow.attendance;
   const membersByClub = {
     'Coding Club': [
@@ -490,7 +557,7 @@ function MentorDesk({ profile, workflow, setWorkflow, remarks, setRemarks }) {
       { name: 'Kiran Rao', role: 'Executive · Social media' },
     ],
   };
-  const canReviewAttendance = clubNames.includes(attendance.clubName);
+  const canReviewAttendance = Boolean(attendance?.submittedAt);
 
   function decideRequest(request, decision) {
     const remark = (remarks[request.id] || '').trim();

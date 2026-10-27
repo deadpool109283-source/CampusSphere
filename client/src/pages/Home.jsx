@@ -3,7 +3,11 @@ import { Link } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
+import { ArrowRight, Calendar, MapPin, Sparkles, Ticket } from 'lucide-react';
 import { apiFetch } from '../lib/api';
+import ThemeToggle from '../components/ThemeToggle';
+import RegistrationDialog from '../components/RegistrationDialog';
+import EventDetailModal from '../components/EventDetailModal';
 import '../styles/home.css';
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -20,11 +24,12 @@ function dateParts(value) {
     return {
       day: new Intl.DateTimeFormat('en', { day: '2-digit' }).format(parsed),
       month: new Intl.DateTimeFormat('en', { month: 'short' }).format(parsed).toUpperCase(),
+      weekday: new Intl.DateTimeFormat('en', { weekday: 'short' }).format(parsed),
     };
   }
   const day = String(value).match(/\b(\d{1,2})\b/)?.[1] || '—';
   const month = String(value).match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\b/i)?.[1]?.toUpperCase() || 'SOON';
-  return { day, month };
+  return { day, month, weekday: 'CAMPUS' };
 }
 
 export default function Home() {
@@ -33,6 +38,9 @@ export default function Home() {
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [eventFilter, setEventFilter] = useState('all');
+  const [viewingEvent, setViewingEvent] = useState(null);
+  const [registeringEvent, setRegisteringEvent] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -126,21 +134,21 @@ export default function Home() {
     return () => media.revert();
   }, { scope: pageRef, dependencies: [isLoading, clubs.length, events.length], revertOnUpdate: true });
 
-  const featuredEvent = events[0];
-  const featuredDate = featuredEvent ? dateParts(featuredEvent.date) : null;
-
   return (
     <main id="top" ref={pageRef} className="campus-landing">
       <header className="landing-nav">
-        <Link className="brand-mark" to="/" aria-label="CampusSphere home">
-          <span className="brand-seal" aria-hidden="true">C</span>
-          <span>Campus<span>Sphere</span></span>
+        <Link className="brand-mark" to="/" aria-label="Amrita Sangam home">
+          <span className="brand-seal" aria-hidden="true">A</span>
+          <span>Amrita<span>Sangam</span></span>
         </Link>
         <nav className="landing-links" aria-label="Main navigation">
           <Link to="/clubs">Explore clubs</Link>
           <Link to="/events">Campus events</Link>
         </nav>
-        <Link className="nav-login" to="/login">Sign in <span aria-hidden="true">↗</span></Link>
+        <div className="landing-nav-actions">
+          <ThemeToggle />
+          <Link className="nav-login" to="/login">Sign in <span aria-hidden="true">↗</span></Link>
+        </div>
       </header>
 
       <section className="landing-hero">
@@ -167,14 +175,14 @@ export default function Home() {
         <a className="scroll-cue" href="#clubs"><span /> Scroll to discover</a>
       </section>
 
-      <section className="campus-numbers" aria-label="CampusSphere listings">
+      <section className="campus-numbers" aria-label="Amrita Sangam listings">
         <p className="section-eyebrow">A campus, connected</p>
         <div className="numbers-grid">
           <div><strong>{isLoading ? '—' : clubs.length}</strong><span>Clubs listed</span></div>
           <div><strong>{isLoading ? '—' : events.length}</strong><span>Events listed</span></div>
           <p>One place for everything happening beyond the classroom.</p>
         </div>
-        <p className="landing-data-note">Current listings are provided by the CampusSphere API.</p>
+        <p className="landing-data-note">Current listings are synchronized via university database.</p>
         {error && <p className="landing-data-note" role="status">Campus listings are temporarily unavailable.</p>}
       </section>
 
@@ -190,11 +198,11 @@ export default function Home() {
           <p className="landing-list-state" role="status">Finding campus communities…</p>
         ) : clubs.length ? (
           <div className="club-track">
-            {clubs.map((club, index) => (
+            {clubs.slice(0, 4).map((club, index) => (
               <article className="club-card" key={club.id}>
                 <img src={clubImages[index % clubImages.length]} alt="" loading="lazy" />
                 <div className="club-card-shade" />
-                <div className="club-card-top"><span>{String(index + 1).padStart(2, '0')} / {String(clubs.length).padStart(2, '0')}</span><span>{club.category || 'Campus community'}</span></div>
+                <div className="club-card-top"><span>{String(index + 1).padStart(2, '0')} / {String(Math.min(clubs.length, 4)).padStart(2, '0')}</span><span>{club.category || 'Campus community'}</span></div>
                 <div className="club-card-bottom">
                   <div><p>{club.members ?? '—'} members</p><h3>{club.name}</h3></div>
                   <Link to={`/clubs/${club.id}`} aria-label={`Explore ${club.name}`}>↗</Link>
@@ -208,38 +216,218 @@ export default function Home() {
         <div className="gallery-footer"><span>DISCOVER YOUR COMMUNITY</span><Link to="/clubs">Explore all clubs <span>↗</span></Link></div>
       </section>
 
-      <section className="event-feature" id="events">
-        <div className="event-feature-copy reveal-on-scroll">
-          <p className="section-eyebrow">{featuredEvent ? `Next on campus · ${featuredDate.day} ${featuredDate.month}` : 'Campus events'}</p>
-          <h2>Make something<br /><em>that matters.</em></h2>
-          <p>{featuredEvent?.description || 'Big ideas, late nights, and a team you haven’t met yet. Find the next gathering on campus.'}</p>
-          <Link className="button-crimson" to="/events">Discover campus events <span aria-hidden="true">↗</span></Link>
+      {/* Campus Events Section: 3 in a Row Grid with Pictures & Floating Window */}
+      <section className="event-feature-stage" id="events">
+        <div className="event-stage-header reveal-on-scroll">
+          <div className="event-stage-title-col">
+            <p className="section-eyebrow">
+              <span className="live-indicator-dot" /> Live Campus Calendar · {events.length} Gatherings Listed
+            </p>
+            <h2>Make something<br /><em>that matters.</em></h2>
+            <p className="event-stage-desc">
+              Three events in a row featuring curated photography, real-time seat availability, On-Duty attendance passes, and interactive floating detail windows.
+            </p>
+          </div>
+
+          <div className="event-category-filter-bar">
+            {[
+              { id: 'all', label: 'All Gatherings' },
+              { id: 'tech', label: 'Tech & Code' },
+              { id: 'creative', label: 'Design & Arts' },
+              { id: 'engineering', label: 'Robotics & Hardware' },
+            ].map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={`event-filter-pill ${eventFilter === f.id ? 'is-active' : ''}`}
+                onClick={() => setEventFilter(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
-        {featuredEvent ? (
-          <article className="event-poster reveal-on-scroll">
-            <div className="event-poster-image" role="img" aria-label={`${featuredEvent.title} event`} />
-            <div className="event-date"><strong>{featuredDate.day}</strong><span>{featuredDate.month}<br />CAMPUS</span></div>
-            <div className="event-poster-title">
-              <span>{featuredEvent.club}</span>
-              <h3>{featuredEvent.title}</h3>
-              <div><span>{featuredEvent.venue}</span><span>{featuredEvent.date}</span></div>
-            </div>
-          </article>
+
+        {events.length > 0 ? (
+          <div className="events-three-col-grid reveal-on-scroll">
+            {events
+              .filter((evt) => {
+                if (eventFilter === 'all') return true;
+                if (eventFilter === 'tech') return evt.category === 'Technology' || /tech|code|cloud|ai/i.test(evt.title + evt.club);
+                if (eventFilter === 'creative') return evt.category === 'Design & Arts' || /design|culture|art/i.test(evt.title + evt.club);
+                if (eventFilter === 'engineering') return evt.category === 'Engineering' || /robotics|drone|hardware/i.test(evt.title + evt.club);
+                return true;
+              })
+              .map((evt) => {
+                const evtDate = dateParts(evt.date);
+                const capacity = Number(evt.capacity || 100);
+                const registered = Number(evt.registeredCount || 0);
+                const percent = Math.min(100, Math.round((registered / capacity) * 100));
+
+                return (
+                  <article
+                    key={evt.id}
+                    className="event-card-modern"
+                    onClick={() => setViewingEvent(evt)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setViewingEvent(evt);
+                      }
+                    }}
+                    aria-label={`View details for ${evt.title}`}
+                  >
+                    {/* Media Card Header */}
+                    <div className="event-card-media">
+                      <img
+                        src={evt.image}
+                        alt={evt.title}
+                        loading="lazy"
+                        className="event-card-img"
+                      />
+                      <div className="event-card-media-shade" />
+
+                      {/* Floating Date Badge */}
+                      <div className="event-card-date-badge">
+                        <span className="event-date-day">{evtDate.day}</span>
+                        <span className="event-date-mon">{evtDate.month}</span>
+                      </div>
+
+                      {/* Category Tag Top Right */}
+                      <div className="event-card-top-tag">
+                        <span className="event-category-badge">{evt.category || 'Gathering'}</span>
+                      </div>
+
+                      {/* Bottom Media Bar */}
+                      <div className="event-card-media-footer">
+                        <span className="event-club-pill">{evt.club}</span>
+                        {evt.open && (
+                          <span className="event-od-pill">
+                            <Sparkles size={11} /> OD Pass
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card Body */}
+                    <div className="event-card-body">
+                      <h3 className="event-card-title">{evt.title}</h3>
+
+                      <p className="event-card-excerpt">
+                        {evt.description || 'Join this engaging campus gathering to build, collaborate, and connect with peers.'}
+                      </p>
+
+                      <div className="event-card-meta-list">
+                        <span className="event-meta-item">
+                          <MapPin size={13} />
+                          <span>{evt.venue || 'Amrita Campus'}</span>
+                        </span>
+                        <span className="event-meta-item">
+                          <Calendar size={13} />
+                          <span>{String(evt.date || '').slice(0, 10)}</span>
+                        </span>
+                      </div>
+
+                      {/* Capacity Meter */}
+                      <div className="event-card-capacity-box">
+                        <div className="capacity-bar-track">
+                          <div
+                            className="capacity-bar-fill"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                        <div className="capacity-labels-row">
+                          <span>
+                            <Ticket size={11} style={{ display: 'inline', marginRight: 4 }} />
+                            {registered} / {capacity} places booked
+                          </span>
+                          <strong className={evt.open ? 'status-open' : 'status-full'}>
+                            {evt.open ? 'Seats Open' : 'Full'}
+                          </strong>
+                        </div>
+                      </div>
+
+                      {/* Card Footer Actions */}
+                      <div className="event-card-footer">
+                        <button
+                          type="button"
+                          className="event-card-details-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewingEvent(evt);
+                          }}
+                        >
+                          <span>View Details</span>
+                          <ArrowRight size={13} />
+                        </button>
+
+                        <button
+                          type="button"
+                          className="event-card-register-btn"
+                          disabled={!evt.open}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRegisteringEvent(evt);
+                          }}
+                        >
+                          {evt.open ? 'Register ↗' : 'Closed'}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+          </div>
         ) : (
-          <div className="event-poster-empty">{isLoading ? 'Loading campus calendar…' : error || 'No events are listed yet.'}</div>
+          <div className="event-poster-empty">
+            {isLoading ? 'Loading campus calendar…' : error || 'No events are listed yet.'}
+          </div>
         )}
       </section>
+
+      {/* Floating Window Event Detail Modal */}
+      {viewingEvent && (
+        <EventDetailModal
+          event={viewingEvent}
+          onClose={() => setViewingEvent(null)}
+          onRegister={(evt) => {
+            setViewingEvent(null);
+            setRegisteringEvent(evt);
+          }}
+          actionLabel="Register for this event now"
+        />
+      )}
+
+      {/* Registration Confirmation Dialog */}
+      {registeringEvent && (
+        <RegistrationDialog
+          event={registeringEvent}
+          profile={{
+            fullName: 'Campus Student',
+            registerNumber: 'AM.EN.U4CSE23001',
+            branch: 'CSE',
+            semester: 'S5',
+            email: 'student@amrita.edu',
+          }}
+          onClose={() => setRegisteringEvent(null)}
+          onSuccess={() => {
+            setRegisteringEvent(null);
+          }}
+        />
+      )}
 
       <section className="closing-cta">
         <p className="section-eyebrow">Join the campus story</p>
         <h2>More than a schedule.<br /><em>A life between classes.</em></h2>
-        <Link className="button-cream" to="/login">Step into CampusSphere <span aria-hidden="true">↗</span></Link>
-        <span className="closing-stamp" aria-hidden="true">CS<br />26</span>
+        <Link className="button-cream" to="/login">Step into Amrita Sangam <span aria-hidden="true">↗</span></Link>
+        <span className="closing-stamp" aria-hidden="true">AS<br />26</span>
       </section>
 
       <footer className="landing-footer">
-        <Link className="brand-mark" to="/"><span className="brand-seal" aria-hidden="true">C</span><span>Campus<span>Sphere</span></span></Link>
-        <p>DBMS Mini-Project · Amrita Vishwa Vidyapeetham</p>
+        <Link className="brand-mark" to="/"><span className="brand-seal" aria-hidden="true">A</span><span>Amrita<span>Sangam</span></span></Link>
+        <p>Amrita Vishwa Vidyapeetham</p>
         <a href="#top">Back to top ↑</a>
       </footer>
     </main>

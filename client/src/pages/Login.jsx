@@ -1,22 +1,20 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, CheckCircle2, KeyRound, Lock, Mail } from 'lucide-react';
 import { useSession } from '../auth/useSession';
+import ThemeToggle from '../components/ThemeToggle';
 import '../styles/login.css';
 
-const previewRoles = [
-  { role: 'STUDENT', label: 'Student', detail: 'A personal campus home' },
-  { role: 'CLUB_EXECUTIVE', label: 'Club executive', detail: 'Event-day attendance preview' },
-  { role: 'CLUB_PRESIDENT', label: 'Club president / OB', detail: 'Event requests and club operations' },
-  { role: 'FACULTY', label: 'Club mentor', detail: 'Club and attendance reviews' },
-  { role: 'ADMIN', label: 'Student Affairs', detail: 'Club setup and final approvals' },
-];
-
 export default function Login() {
-  const { signIn, startPreview, supabaseConfigured, authError } = useSession();
+  const { signIn, resetPassword, supabaseConfigured, authError } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [mode, setMode] = useState('signin'); // 'signin' | 'forgot'
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -27,97 +25,202 @@ export default function Login() {
     setLoading(true);
     try {
       await signIn(email, password);
-      navigate(location.state?.from || '/app', { replace: true });
+      const rawFrom = location.state?.from;
+      const safeRedirect = typeof rawFrom === 'string' && rawFrom.startsWith('/') && !rawFrom.startsWith('//') && !rawFrom.includes('\\')
+        ? rawFrom
+        : '/app';
+      navigate(safeRedirect, { replace: true });
     } catch (err) {
-      setError(err.message || 'Failed to sign in. Please verify your credentials.');
+      setError(err.message || 'Verification failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
   }
 
-  function handlePreview(role) {
-    startPreview(role);
-    navigate(location.state?.from || '/app', { replace: true });
+  async function handleResetPassword(event) {
+    event.preventDefault();
+    if (!email) return;
+    setResetError('');
+    setResetLoading(true);
+    try {
+      if (resetPassword) {
+        await resetPassword(email);
+      }
+      setResetSent(true);
+    } catch (err) {
+      setResetError(err.message || 'Unable to send recovery email. Please check the address.');
+    } finally {
+      setResetLoading(false);
+    }
   }
 
   return (
     <main className="login-page">
-      <header className="public-header">
-        <Link className="public-brand" to="/"><span className="brand-seal">C</span>Campus<span>Sphere</span></Link>
-        <Link className="quiet-button" to="/">Return to campus <span aria-hidden="true">↗</span></Link>
+      <header className="public-header public-header-clean">
+        <div className="login-header-actions">
+          <ThemeToggle />
+          <Link className="login-return-button" to="/" aria-label="Return to Campus Home">
+            <ArrowLeft size={14} />
+            <span>Return to campus</span>
+          </Link>
+        </div>
       </header>
-      <div className="login-layout">
-        <section className="login-intro">
-          <p className="eyebrow">Your campus, in one place</p>
-          <h1>Come in.<br /><em>Find your people.</em></h1>
-          <p>CampusSphere brings clubs, events, and student life into one shared campus space.</p>
-          <span className="login-intro-note">AMRITA · CAMPUS LIFE, CONNECTED</span>
-        </section>
-        <section className="login-panel" aria-labelledby="login-heading">
-          <p className="eyebrow">CampusSphere access</p>
-          <h2 id="login-heading">Sign in to your campus</h2>
+
+      <div className="login-center-stage">
+        <section className="login-panel-card" aria-label="Authentication">
+          <div className="auth-card-header">
+            <Link to="/" className="auth-brand-center" aria-label="Amrita Sangam Home">
+              <span className="auth-brand-title">
+                Amrita<span className="auth-brand-accent">Sangam</span>
+              </span>
+              <span className="auth-brand-caption">Campus Life & Engagement Portal</span>
+            </Link>
+            <h2>{mode === 'signin' ? 'Sign in' : 'Reset password'}</h2>
+          </div>
 
           {supabaseConfigured ? (
-            <form className="auth-form" onSubmit={handleSubmit}>
-              <label className="auth-label">
-                <span>College email</span>
-                <input
-                  type="email"
-                  autoComplete="email"
-                  required
-                  placeholder="you@college.edu"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </label>
-              <label className="auth-label">
-                <span>Password</span>
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </label>
-              {(error || authError) && (
-                <div className="auth-error-notice" role="alert">
-                  {error || authError}
+            mode === 'signin' ? (
+              <form className="auth-form-minimal" onSubmit={handleSubmit}>
+                <div className="auth-input-group">
+                  <label htmlFor="login-email" className="auth-field-label">Email</label>
+                  <div className="auth-input-wrapper">
+                    <Mail size={16} className="auth-input-icon" />
+                    <input
+                      id="login-email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      placeholder="name@amrita.edu"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
                 </div>
-              )}
-              <button className="auth-submit-btn" type="submit" disabled={loading}>
-                {loading ? 'Signing in…' : 'Sign in to campus ↗'}
-              </button>
-            </form>
+
+                <div className="auth-input-group">
+                  <label htmlFor="login-password" className="auth-field-label">Password</label>
+                  <div className="auth-input-wrapper">
+                    <Lock size={16} className="auth-input-icon" />
+                    <input
+                      id="login-password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {(error || authError) && (
+                  <div className="auth-error-notice" role="alert">
+                    {error || authError}
+                  </div>
+                )}
+
+                <button className="auth-submit-btn-minimal" type="submit" disabled={loading}>
+                  {loading ? 'Verifying…' : (
+                    <>
+                      Sign in <ArrowRight size={15} />
+                    </>
+                  )}
+                </button>
+
+                <div className="auth-forgot-row">
+                  <button
+                    type="button"
+                    className="auth-link-subtle"
+                    onClick={() => {
+                      setMode('forgot');
+                      setError('');
+                      setResetSent(false);
+                    }}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Forgot Password Form */
+              <form className="auth-form-minimal" onSubmit={handleResetPassword}>
+                {resetSent ? (
+                  <div className="auth-success-state">
+                    <CheckCircle2 size={32} className="auth-success-icon" />
+                    <h3>Recovery link sent</h3>
+                    <p>Check <strong>{email}</strong> for instructions to reset your password.</p>
+                    <button
+                      type="button"
+                      className="auth-secondary-btn-minimal"
+                      onClick={() => {
+                        setMode('signin');
+                        setResetSent(false);
+                      }}
+                    >
+                      Back to sign in
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="auth-forgot-desc">
+                      Enter your university email and we will send you a recovery link.
+                    </p>
+                    <div className="auth-input-group">
+                      <label htmlFor="reset-email" className="auth-field-label">Email</label>
+                      <div className="auth-input-wrapper">
+                        <Mail size={16} className="auth-input-icon" />
+                        <input
+                          id="reset-email"
+                          type="email"
+                          autoComplete="email"
+                          required
+                          placeholder="name@amrita.edu"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {resetError && (
+                      <div className="auth-error-notice" role="alert">
+                        {resetError}
+                      </div>
+                    )}
+
+                    <div className="auth-actions-stack">
+                      <button className="auth-submit-btn-minimal" type="submit" disabled={resetLoading}>
+                        {resetLoading ? 'Sending link…' : (
+                          <>
+                            Send recovery email <KeyRound size={15} />
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className="auth-secondary-btn-minimal"
+                        onClick={() => {
+                          setMode('signin');
+                          setResetError('');
+                        }}
+                      >
+                        Back to sign in
+                      </button>
+                    </div>
+                  </>
+                )}
+              </form>
+            )
           ) : (
             <div className="auth-unavailable" role="status">
-              <strong>Supabase Auth not configured yet.</strong>
-              <p>Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> in <code>client/.env</code> to connect real college accounts issued by ICTS.</p>
+              <p>Authentication service currently unavailable.</p>
             </div>
           )}
-
-          <div className="preview-access">
-            <div className="preview-heading">
-              <span>DEVELOPMENT ONLY</span>
-              <span>UI preview sessions</span>
-            </div>
-            <p>Preview role-specific layouts without credentials.</p>
-            <div className="preview-role-list">
-              {previewRoles.map((item) => (
-                <button key={item.role} type="button" onClick={() => handlePreview(item.role)}>
-                  <span><strong>{item.label}</strong><small>{item.detail}</small></span>
-                  <span aria-hidden="true">↗</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <p className="login-footnote">For account access, contact Student Affairs or ICTS. Accounts are secured with Supabase Auth & verified by CampusSphere API.</p>
         </section>
       </div>
+
       <footer className="login-footer">
-        <Link to="/">CampusSphere</Link>
-        <span>DBMS Mini-Project · Amrita Vishwa Vidyapeetham</span>
+        <Link to="/" className="footer-brand-link">Amrita Sangam</Link>
+        <span>Amrita Vishwa Vidyapeetham</span>
       </footer>
     </main>
   );
